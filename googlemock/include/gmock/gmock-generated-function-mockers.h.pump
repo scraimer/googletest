@@ -128,8 +128,8 @@ using internal::FunctionMocker;
 
 // The variable for mocking the given method.
 // INTERNAL IMPLEMENTATION - DON'T USE IN USER CODE!!!
-#define GMOCK_MOCKER_(arity, constness, Method) \
-    GTEST_CONCAT_TOKEN_(gmock##constness##arity##_##Method##_, __LINE__)
+#define GMOCK_MOCKER_(arity, constness, overrideness, Method) \
+    GTEST_CONCAT_TOKEN_(gmock##constness##overrideness##arity##_##Method##_, __LINE__)
 
 
 $for i [[
@@ -140,53 +140,64 @@ $var as = [[$for j, [[gmock_a$j]]]]
 $var matcher_as = [[$for j, \
                      [[GMOCK_MATCHER_(tn, $j, __VA_ARGS__) gmock_a$j]]]]
 // INTERNAL IMPLEMENTATION - DON'T USE IN USER CODE!!!
-#define GMOCK_METHOD$i[[]]_(tn, constness, ct, Method, ...) \
+#define GMOCK_METHOD$i[[]]_(tn, constness, overrideness, ct, Method, ...) \
   GMOCK_RESULT_(tn, __VA_ARGS__) ct Method( \
-      $arg_as) constness { \
+      $arg_as) constness overrideness { \
     GTEST_COMPILE_ASSERT_((::testing::tuple_size<                          \
         tn ::testing::internal::Function<__VA_ARGS__>::ArgumentTuple>::value == $i), \
         this_method_does_not_take_$i[[]]_argument[[$if i != 1 [[s]]]]); \
-    GMOCK_MOCKER_($i, constness, Method).SetOwnerAndName(this, #Method); \
-    return GMOCK_MOCKER_($i, constness, Method).Invoke($as); \
+    GMOCK_MOCKER_($i, constness, overrideness, Method).SetOwnerAndName(this, #Method); \
+    return GMOCK_MOCKER_($i, constness, overrideness, Method).Invoke($as); \
   } \
   ::testing::MockSpec<__VA_ARGS__>& \
-      gmock_##Method($matcher_as) constness { \
-    GMOCK_MOCKER_($i, constness, Method).RegisterOwner(this); \
-    return GMOCK_MOCKER_($i, constness, Method).With($as); \
+      gmock_##Method($matcher_as) constness overrideness { \
+    GMOCK_MOCKER_($i, constness, overrideness, Method).RegisterOwner(this); \
+    return GMOCK_MOCKER_($i, constness, overrideness, Method).With($as); \
   } \
-  mutable ::testing::FunctionMocker<__VA_ARGS__> GMOCK_MOCKER_($i, constness, Method)
+  mutable ::testing::FunctionMocker<__VA_ARGS__> GMOCK_MOCKER_($i, constness, overrideness, Method)
 
 
 ]]
 
-$$ For each function postfix, create a version of each MOCK_*_METHOD: regular, CONST
-$range po 0..1
+$$ For each function postfix, create a version of each MOCK_*_METHOD: regular, CONST, OVERRIDE
+$range po 0..3
 $for po [[
 
+$$ Define constant strings for the keywords used below
+$var const = [[const]]
+$var override = [[override]]
+$var _CONST = [[_CONST]]
+$var _OVERRIDE = [[_OVERRIDE]]
+$var _CONST_OVERRIDE = [[_CONST_OVERRIDE]]
+
+$var postfix_constness =    ["", const,"",      const][po]
+$var postfix_overrideness = ["", "",   override,override][po]
+$var name = ["",_CONST,_OVERRIDE,_CONST_OVERRIDE][po]
+
 $for i [[
-#define MOCK_[[$if po == 1 [[CONST_]]]]METHOD$i(m, ...) \
-    GMOCK_METHOD$i[[]]_(, [[$if po == 1 [[const]]]], , m, __VA_ARGS__)
+#define MOCK[[$name]]_METHOD$i(m, ...) \
+    GMOCK_METHOD$i[[]]_(, $postfix_constness, $postfix_overrideness, , m, __VA_ARGS__)
 
 ]]
 
 
 $for i [[
-#define MOCK_[[$if po == 1 [[CONST_]]]]METHOD$i[[]]_T(m, ...) \
-    GMOCK_METHOD$i[[]]_(typename, [[$if po == 1 [[const]]]], , m, __VA_ARGS__)
+#define MOCK[[$name]]_METHOD$i[[]]_T(m, ...) \
+    GMOCK_METHOD$i[[]]_(typename, $postfix_constness, $postfix_overrideness, , m, __VA_ARGS__)
 
 ]]
 
 
 $for i [[
-#define MOCK_[[$if po == 1 [[CONST_]]]]METHOD$i[[]]_WITH_CALLTYPE(ct, m, ...) \
-    GMOCK_METHOD$i[[]]_(, [[$if po == 1 [[const]]]], ct, m, __VA_ARGS__)
+#define MOCK[[$name]]_METHOD$i[[]]_WITH_CALLTYPE(ct, m, ...) \
+    GMOCK_METHOD$i[[]]_(, $postfix_constness, $postfix_overrideness, ct, m, __VA_ARGS__)
 
 ]]
 
 
 $for i [[
-#define MOCK_[[$if po == 1 [[CONST_]]]]METHOD$i[[]]_T_WITH_CALLTYPE(ct, m, ...) \
-    GMOCK_METHOD$i[[]]_(typename, [[$if po == 1 [[const]]]], ct, m, __VA_ARGS__)
+#define MOCK[[$name]]_METHOD$i[[]]_T_WITH_CALLTYPE(ct, m, ...) \
+    GMOCK_METHOD$i[[]]_(typename, $postfix_constness, $postfix_overrideness, ct, m, __VA_ARGS__)
 
 ]]
 
